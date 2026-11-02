@@ -1,160 +1,451 @@
-# PRD — Conversas múltiplas
+# PRD — Multi-chat
 
 ## 1. Visão geral
 
-Evoluir o chat de conversa única para uma aplicação com várias conversas independentes. A pessoa usuária poderá criar conversas, selecionar uma conversa existente e manter um histórico separado em cada uma.
+Evolução do chat de conversa única para **múltiplas conversas** independentes. O usuário gerencia conversas por um sidebar à esquerda, alterna entre elas e envia mensagens com o mesmo fluxo de remetente usuário/robô já existente.
 
-O gerenciamento de estado será feito com Zustand. As conversas existirão somente em memória durante a sessão: atualizar ou reabrir a página reinicia a aplicação sem conversas ativas nem histórico restaurado.
+O estado global passa de `useState` local para uma **store Zustand** em `src/stores/`. Tudo continua **apenas em memória** — ao recarregar a página, conversas e mensagens são perdidas.
+
+**Stack existente:** Vite + React + TypeScript + Tailwind CSS.  
+**Nova dependência:** [Zustand](https://zustand.docs.pmnd.rs/).
+
+**Documento base:** [brain-drump.md](./brain-drump.md)  
+**PRD anterior (chat único):** [../../prd.md](../../prd.md)
+
+---
 
 ## 2. Objetivos
 
-| Objetivo | Critério de sucesso |
-|---|---|
-| Criar e acessar várias conversas | O sidebar lista as conversas e permite ativar cada uma |
-| Separar históricos | Cada conversa exibe somente as mensagens enviadas nela |
-| Começar sem conversa selecionada | A aplicação abre sem chat ativo e orienta a criar uma conversa |
-| Usar a aplicação em telas pequenas | O sidebar pode ser aberto e fechado por um botão hamburger |
-| Evitar envios sem destino | Os controles de composição ficam desabilitados quando não há conversa ativa |
-| Simplificar a identificação | Cada conversa é identificada pelo próprio ID no sidebar |
+| Objetivo                              | Critério de sucesso                                                                          |
+| ------------------------------------- | -------------------------------------------------------------------------------------------- |
+| Múltiplas conversas isoladas          | Cada conversa mantém seu próprio histórico de `Message`                                      |
+| Navegação entre conversas             | Sidebar lista conversas; clique ativa a conversa selecionada                                 |
+| Criar conversa                        | Botão no sidebar cria conversa com UUID, seleciona automaticamente                           |
+| Excluir conversa                      | Ícone de exclusão em cada item; ao excluir a ativa, volta ao empty state                     |
+| Estado inicial sem conversa ativa     | Ao abrir o site, nenhuma conversa está selecionada                                           |
+| Input condicional                     | Input desabilitado (opacidade 50%, ações bloqueadas) sem conversa ativa                      |
+| Sidebar responsivo                    | Fixo à esquerda no desktop; retrátil no mobile via botão hamburger                           |
+| Preservar comportamento do chat único | Envio, toggle, bolhas, auto-scroll e atalhos de teclado inalterados quando há conversa ativa |
 
-## 3. Histórias de usuário
+---
 
-- Como pessoa usuária, quero criar uma conversa para iniciar um novo histórico.
-- Como pessoa usuária, quero alternar entre conversas sem misturar suas mensagens.
-- Como pessoa usuária, quero ver qual conversa está selecionada.
-- Como pessoa usuária em um celular, quero abrir o sidebar quando precisar trocar de conversa e voltar ao chat após selecionar uma.
-- Como pessoa usuária, quero que a composição de mensagens fique indisponível até selecionar ou criar uma conversa.
+## 3. Fora de escopo
 
-## 4. Escopo
+- Persistência (localStorage, backend, etc.)
+- Autenticação
+- Edição ou exclusão de mensagens individuais
+- Renomear conversas (identificação é o próprio ID)
+- Horários, rótulos de remetente ou cabeçalho do chat
+- Markdown, anexos ou formatação rica
+- Busca ou filtros de conversas
+- Confirmação modal antes de excluir conversa
 
-### Incluído
+---
 
-- Gerenciamento da lista de conversas e da conversa ativa com Zustand.
-- Criação de novas conversas, cada uma com ID único e histórico inicialmente vazio.
-- Seleção de uma conversa existente no sidebar.
-- Histórico individual, mantendo o tipo `Message` existente.
-- Estado inicial sem conversa ativa.
-- Desabilitação do input e de seus botões enquanto não houver conversa ativa.
-- Sidebar à esquerda em telas maiores e retrátil em dispositivos móveis.
-- Exibição do ID como identificação da conversa.
-- Estado apenas em memória, sem restauração após recarregar a página.
+## 4. Convenções técnicas
 
-### Fora de escopo
+| Regra         | Detalhe                                  |
+| ------------- | ---------------------------------------- |
+| Tipos         | `type` (não `interface`) em `src/types/` |
+| Componentes   | `src/components/`                        |
+| Estado global | Zustand em `src/stores/`                 |
+| Estilização   | Tailwind CSS exclusivamente              |
+| Lint          | `oxlint`                                 |
 
-- Persistência em `localStorage`, IndexedDB ou backend.
-- Autenticação, sincronização ou compartilhamento de conversas.
-- Renomear, excluir, arquivar ou pesquisar conversas.
-- Metadados de conversa além do ID e do histórico de mensagens.
-- Alterações no formato ou nas funcionalidades individuais de mensagens já existentes, exceto para associar seu envio à conversa ativa.
+---
 
-## 5. Requisitos funcionais
+## 5. Modelo de dados
 
-### RF-01 — Estado global
-
-- Criar a store Zustand em `src/stores`.
-- A store deve manter:
-  - As conversas, cada uma contendo seu ID e uma lista ordenada de mensagens.
-  - O ID da conversa ativa, ou `null` quando nenhuma estiver selecionada.
-- As mensagens devem manter o tipo existente `Message` (`id`, `text` e `sender`).
-- O estado não deve ser persistido fora da memória da aplicação.
-
-### RF-02 — Inicialização sem conversa
-
-- Ao abrir ou recarregar a aplicação, não deve haver conversa ativa.
-- A área principal deve mostrar um estado vazio que oriente a criar uma conversa ou selecionar uma existente.
-- O input e todos os seus botões devem estar desabilitados e visualmente atenuados (opacidade de 50%).
-- Nenhuma mensagem pode ser enviada enquanto não houver conversa ativa.
-
-### RF-03 — Criar conversa
-
-- O sidebar deve oferecer uma ação para criar conversa.
-- Cada ação cria uma conversa com ID único e histórico vazio, adiciona-a à lista e a torna a conversa ativa.
-- A nova conversa deve aparecer no sidebar e estar visualmente identificada como ativa.
-- A lista deve mostrar o ID da conversa como seu rótulo.
-
-### RF-04 — Selecionar conversa
-
-- Selecionar uma conversa no sidebar a torna ativa e carrega somente seu histórico.
-- Alternar entre conversas não deve apagar nem mover mensagens de uma conversa para outra.
-- A conversa ativa deve ser distinguível das demais na lista.
-- Conversas devem aparecer em ordem de criação, da mais recente para a mais antiga.
-
-### RF-05 — Envio e histórico
-
-- Com uma conversa ativa, o fluxo existente de composição e envio de mensagens deve continuar disponível.
-- Cada mensagem enviada deve ser adicionada somente ao histórico da conversa ativa no momento do envio.
-- O histórico deve preservar a ordem de envio e o comportamento atual de exibição, incluindo alinhamento por remetente e rolagem até a mensagem mais recente.
-- A alternância entre usuário e robô continua afetando a próxima mensagem. A seleção de outra conversa não altera o histórico já salvo em cada uma.
-
-### RF-06 — Sidebar responsivo
-
-- Em telas maiores, o sidebar fica à esquerda da área de conversa.
-- Em telas pequenas, o sidebar começa recolhido e pode ser aberto por um botão hamburger no canto superior esquerdo.
-- Com o sidebar móvel aberto, selecionar uma conversa ativa essa conversa e fecha o sidebar.
-- O sidebar deve continuar oferecendo a ação de criar conversa em ambos os modos responsivos.
-
-## 6. Requisitos visuais e de interação
-
-- Manter a identidade visual e os padrões de layout existentes no projeto.
-- O sidebar deve apresentar a lista de IDs e indicar a conversa ativa.
-- A área principal sem conversa deve comunicar o estado vazio; não deve mostrar um histórico de outra conversa.
-- Sem conversa ativa, o input e seus controles devem ter opacidade de 50% e não devem responder a interação.
-- Em celular, o botão hamburger deve permanecer acessível no canto superior esquerdo para abrir o sidebar.
-
-## 7. Modelo de dados e estado
-
-Formato conceitual:
+### Tipos existentes (inalterados)
 
 ```ts
+// src/types/message.ts
+type Sender = 'user' | 'robot'
+
+type Message = {
+  id: string
+  text: string
+  sender: Sender
+}
+```
+
+### Novo tipo
+
+```ts
+// src/types/conversation.ts
 type Conversation = {
   id: string
   messages: Message[]
 }
+```
 
-type MultichatState = {
-  conversations: Conversation[]
+- `id`: UUID gerado na criação (`crypto.randomUUID()`)
+- `messages`: histórico ordenado cronologicamente da conversa
+
+### Store Zustand
+
+```ts
+// src/stores/chatStore.ts (estrutura conceitual)
+type ChatState = {
+  conversations: Conversation[]       // ordenadas da mais antiga à mais recente
   activeConversationId: string | null
+  sender: Sender                      // global — compartilhado entre todas as conversas
 }
 ```
 
-`Message` é o tipo existente em `src/types/message.ts`. O identificador da conversa deve ser único; pode seguir o mecanismo de geração de IDs já usado pelo projeto (`crypto.randomUUID()`).
+### Ações da store
 
-## 8. Critérios de aceite
+| Ação                     | Comportamento                                                                    |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `createConversation()`   | Gera UUID, adiciona conversa vazia ao final do array, define como ativa          |
+| `selectConversation(id)` | Define `activeConversationId`                                                    |
+| `deleteConversation(id)` | Remove a conversa do array; se era a ativa, define `activeConversationId = null` |
+| `addMessage(text)`       | Adiciona `Message` à conversa ativa (valida trim e conversa ativa)               |
+| `toggleSender()`         | Alterna `sender` entre `'user'` e `'robot'`                                      |
 
-1. Ao iniciar ou recarregar a página, nenhuma conversa está ativa, o estado vazio é exibido e o input está desabilitado com opacidade de 50%.
-2. Criar uma conversa gera um ID único, adiciona uma conversa vazia à lista e a ativa imediatamente.
-3. Enviar uma mensagem com uma conversa ativa atualiza apenas o histórico dessa conversa.
-4. Criar outra conversa não modifica o histórico da anterior.
-5. Selecionar uma conversa existente exibe seu histórico e não altera as mensagens das demais.
-6. A lista identifica cada conversa pelo ID, aparece da mais recente para a mais antiga e destaca a conversa ativa.
-7. Em tela pequena, o sidebar fica inicialmente recolhido; o hamburger o abre e selecionar uma conversa o fecha.
-8. Recarregar a página descarta conversas e mensagens; nenhum mecanismo de persistência é utilizado.
-9. O fluxo já existente de enviar como usuário ou robô e de exibir/rolar o histórico continua funcionando em cada conversa.
+---
 
-## 9. Estrutura técnica esperada
+## 6. Requisitos funcionais
 
-```text
-src/
-├── stores/
-│   └── ...                 # Store Zustand para conversas e conversa ativa
-├── types/
-│   └── message.ts          # Message existente
-└── components/
-    ├── ...                 # Sidebar, lista de conversas e área de chat
-    └── ...                 # Componentes existentes de mensagens e input
+### RF-01 — Estado inicial
+
+- Ao abrir o site: `activeConversationId === null`.
+- Nenhuma conversa pré-criada.
+- Input desabilitado.
+- Área principal exibe empty state: *"Crie ou selecione uma conversa"* (ou texto equivalente).
+
+### RF-02 — Sidebar de conversas
+
+- Posicionado à **esquerda** da tela.
+- Lista todas as conversas existentes, **da mais antiga à mais recente** (ordem de criação).
+- Cada item exibe o **ID da conversa** como identificação.
+- Item da conversa **ativa** tem destaque visual (ex.: fundo ou borda diferente).
+- Clique em um item **seleciona** essa conversa como ativa.
+- Botão **"Nova conversa"** (ou ícone + label equivalente) no sidebar cria e ativa uma nova conversa.
+
+### RF-03 — Criar conversa
+
+- Gera `id` via `crypto.randomUUID()`.
+- Conversa inicia com `messages: []`.
+- Adicionada ao **final** da lista (mais recente embaixo).
+- **Selecionada automaticamente** como conversa ativa.
+- Input habilitado após criação.
+
+### RF-04 — Excluir conversa
+
+- Cada item do sidebar possui **ícone/botão de excluir**.
+- Clique no ícone remove a conversa da store.
+- Se a conversa excluída era a **ativa**: `activeConversationId` volta para `null` (empty state global), **mesmo que existam outras conversas na lista**.
+- Exclusão não exige confirmação.
+
+### RF-05 — Histórico por conversa
+
+- Ao alternar de conversa, a área de mensagens exibe apenas o histórico da conversa ativa.
+- Comportamento de lista, bolhas, alinhamento e auto-scroll **idêntico ao PRD do chat único** (RF-01 a RF-02 do documento anterior).
+- Conversa ativa sem mensagens: empty state *"Nenhuma mensagem ainda. Envie a primeira!"*.
+
+### RF-06 — Input condicional
+
+- **Sem conversa ativa** (`activeConversationId === null`):
+  - Card de input com **opacidade 50%**.
+  - Textarea, botão enviar e toggle de remetente **desabilitados** (não respondem a cliques/teclado).
+- **Com conversa ativa**: input funciona normalmente (mesmas regras do chat único).
+
+### RF-07 — Toggle usuário / robô (global)
+
+- `sender` vive na store Zustand, **não** por conversa.
+- Alternar o toggle afeta a próxima mensagem em **qualquer** conversa ativa.
+- Ao trocar de conversa, o remetente ativo **permanece o mesmo**.
+- Estado padrão ao abrir: `'user'`.
+- Borda roxa no card quando `sender === 'robot'`.
+
+### RF-08 — Envio de mensagem
+
+- Só é possível enviar com conversa ativa.
+- Validação, criação de `Message`, limpeza do textarea e atalhos de teclado inalterados.
+- Mensagem é adicionada ao array `messages` da conversa ativa.
+
+### RF-09 — Sidebar mobile (retrátil)
+
+- Em viewports mobile: sidebar **oculto por padrão**.
+- Botão **hamburger** no canto **superior esquerdo** abre o sidebar.
+- Sidebar abre como **overlay** (drawer) sobre o conteúdo ou empurra o conteúdo — preferência: overlay com backdrop semi-transparente.
+- Ao **selecionar** uma conversa ou **criar** nova no mobile, o sidebar **fecha automaticamente**.
+- Segundo clique no hamburger (ou no backdrop) fecha o sidebar.
+
+---
+
+## 7. Requisitos visuais
+
+### Layout desktop
+
+```
+┌──────────┬──────────────────────────────────────────────┐
+│          │         fundo marrom claro (tela inteira)     │
+│ Sidebar  │                                              │
+│ fixo     │      ┌─────────────────────────┐             │
+│          │      │  max-w-2xl, centralizado │             │
+│ [+ Nova] │      │                         │             │
+│          │      │  [empty / histórico]    │             │
+│ id-abc   │      │                         │             │
+│ id-def ● │      │  ┌───────────────────┐  │             │
+│          │      │  │ [toggle][txt][▶]  │  │             │
+│          │      │  └───────────────────┘  │             │
+│          │      └─────────────────────────┘             │
+└──────────┴──────────────────────────────────────────────┘
 ```
 
-Os nomes e a divisão final dos componentes podem seguir a estrutura atual, desde que os requisitos e critérios de aceite sejam atendidos.
+| Elemento              | Especificação                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Sidebar               | Largura fixa (ex.: `w-64` ou `w-72`), altura total (`h-dvh`), fundo distinto do chat (ex.: `bg-stone-100` ou `bg-white`) |
+| Área do chat          | Ocupa o restante da tela; container interno `max-w-2xl mx-auto` centralizado na área disponível                          |
+| Item ativo no sidebar | Destaque visual claro (ex.: `bg-stone-200`, `font-medium` ou borda lateral)                                              |
+| Botão nova conversa   | No topo do sidebar, sempre visível                                                                                       |
+| Ícone excluir         | Por item, discreto mas acessível (ex.: ícone à direita do ID)                                                            |
+| Input desabilitado    | `opacity-50`, `pointer-events-none` ou `disabled` nos controles                                                          |
 
-## 10. Tarefas de implementação
+### Layout mobile
 
-- [ ] **Adicionar Zustand ao projeto** — incluir a dependência e confirmar que build e lint continuam funcionando.
-- [ ] **Definir os tipos de conversa e estado** — criar o tipo `Conversation` com `id` e `messages: Message[]`, preservando o tipo de mensagem existente.
-- [ ] **Criar a store de conversas** — em `src/stores`, manter `conversations` e `activeConversationId`, inicialmente vazio e `null`; implementar ações para criar, selecionar e adicionar mensagem à conversa ativa.
-- [ ] **Implementar o sidebar** — exibir conversas pelo ID, ordenar da mais recente para a mais antiga, destacar a ativa e oferecer a ação de criar conversa.
-- [ ] **Adaptar o chat ao estado global** — retirar o histórico local do componente de chat e exibir somente as mensagens da conversa ativa.
-- [ ] **Integrar o envio de mensagens** — adicionar cada nova mensagem somente à conversa ativa, mantendo o remetente, a validação de texto vazio, a limpeza do campo e os atalhos existentes.
-- [ ] **Implementar estado sem conversa ativa** — ao iniciar sem seleção, mostrar uma orientação para criar ou selecionar uma conversa e desabilitar o input e todos os seus botões com opacidade de 50%.
-- [ ] **Construir o layout responsivo** — posicionar o sidebar à esquerda em telas maiores; em telas pequenas, iniciar recolhido, permitir abertura pelo hamburger no canto superior esquerdo e fechá-lo após selecionar uma conversa.
-- [ ] **Preservar o comportamento do histórico** — manter alinhamento por remetente, ordem cronológica, estado vazio e rolagem até a mensagem mais recente.
-- [ ] **Validar os critérios de aceite** — executar lint e build e testar criação, alternância e isolamento de históricos, estado inicial, comportamento móvel e perda de dados após recarregar a página.
+```
+┌─────────────────────────────────────┐
+│ [☰]                                 │  ← hamburger top-left
+│                                     │
+│      ┌─────────────────────┐      │
+│      │  max-w-2xl área     │      │
+│      │  chat               │      │
+│      └─────────────────────┘      │
+└─────────────────────────────────────┘
+
+(drawer overlay ao abrir ☰)
+┌──────────┬──────────────────────────┐
+│ Sidebar  │ ░░░ backdrop ░░░░░░░░░░ │
+│          │ ░░░░░░░░░░░░░░░░░░░░░░░░ │
+└──────────┴──────────────────────────┘
+```
+
+| Elemento  | Especificação                                                              |
+| --------- | -------------------------------------------------------------------------- |
+| Hamburger | Canto superior esquerdo, fixo ou no topo da área do chat                   |
+| Drawer    | Sidebar desliza da esquerda; backdrop escurecido clicável para fechar      |
+| Chat      | Ocupa largura total; `max-w-2xl` pode ser relaxado no mobile se necessário |
+
+### Estados vazios
+
+| Condição                     | Texto sugerido                                                        |
+| ---------------------------- | --------------------------------------------------------------------- |
+| Nenhuma conversa ativa       | *"Crie ou selecione uma conversa"*                                    |
+| Conversa ativa sem mensagens | *"Nenhuma mensagem ainda. Envie a primeira!"* (mantido do chat único) |
+
+---
+
+## 8. Arquitetura de componentes
+
+```
+src/
+├── types/
+│   ├── message.ts              # Sender, Message (existente)
+│   └── conversation.ts         # Conversation (novo)
+├── stores/
+│   └── chatStore.ts            # Zustand: conversas, ativa, sender, ações
+├── components/
+│   ├── Chat.tsx                # Layout: sidebar + área do chat
+│   ├── Sidebar.tsx             # Lista, nova conversa, exclusão
+│   ├── SidebarItem.tsx         # Item individual (ID + excluir)
+│   ├── MobileMenuButton.tsx    # Hamburger (mobile)
+│   ├── MessageList.tsx         # Adaptado: recebe messages da conversa ativa
+│   ├── MessageBubble.tsx       # Inalterado
+│   ├── ChatInput.tsx           # Adaptado: prop disabled + store sender
+│   └── SenderToggle.tsx        # Inalterado
+├── App.tsx
+└── index.css
+```
+
+### Responsabilidades
+
+| Componente         | Responsabilidade                                                       |
+| ------------------ | ---------------------------------------------------------------------- |
+| `chatStore`        | Fonte única de verdade: conversas, conversa ativa, sender global, CRUD |
+| `Chat`             | Layout responsivo; orquestra sidebar + área de mensagens + input       |
+| `Sidebar`          | Renderiza lista ordenada, botão nova conversa, estado ativo            |
+| `SidebarItem`      | Exibe ID, destaque se ativo, botão excluir                             |
+| `MobileMenuButton` | Toggle do drawer no mobile                                             |
+| `MessageList`      | Empty state contextual (sem conversa vs. sem mensagens)                |
+| `ChatInput`        | Lê `sender` da store; respeita `disabled` quando sem conversa ativa    |
+
+### Migração de estado
+
+| Antes (`Chat.tsx`)    | Depois (`chatStore`)        |
+| --------------------- | --------------------------- |
+| `useState<Message[]>` | `conversations[n].messages` |
+| `useState<Sender>`    | `sender` global na store    |
+| —                     | `activeConversationId`      |
+| —                     | `conversations[]`           |
+
+---
+
+## 9. Fluxos
+
+### Criar e usar conversa
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant S as Sidebar
+    participant Z as chatStore
+    participant M as MessageList
+    participant I as ChatInput
+
+    U->>S: Clica "Nova conversa"
+    S->>Z: createConversation()
+    Z->>Z: UUID + messages: [] + activeConversationId
+    Z->>M: Re-render (empty state de mensagens)
+    Z->>I: Input habilitado
+    U->>I: Digita e envia
+    I->>Z: addMessage(text)
+    Z->>M: Nova mensagem na conversa ativa
+```
+
+### Excluir conversa ativa
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant S as Sidebar
+    participant Z as chatStore
+    participant M as MessageList
+    participant I as ChatInput
+
+    U->>S: Clica excluir na conversa ativa
+    S->>Z: deleteConversation(id)
+    Z->>Z: Remove conversa; activeConversationId = null
+    Z->>M: Empty state "Crie ou selecione..."
+    Z->>I: Input desabilitado (opacity 50%)
+```
+
+### Alternar conversa
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant S as Sidebar
+    participant Z as chatStore
+    participant M as MessageList
+
+    U->>S: Clica em outra conversa
+    S->>Z: selectConversation(id)
+    Z->>M: Exibe messages da conversa selecionada
+    Note over Z: sender global permanece inalterado
+```
+
+---
+
+## 10. Tarefas de implementação (ordem progressiva)
+
+### Fase 1 — Fundação
+
+#### Tarefa 1.1 — Dependência e tipos
+- [ ] Instalar `zustand`
+- [ ] Criar `src/types/conversation.ts`
+- **Verificação:** `npm run build` sem erros
+
+#### Tarefa 1.2 — Store Zustand
+- [ ] Criar `src/stores/chatStore.ts` com estado inicial vazio
+- [ ] Implementar ações: `createConversation`, `selectConversation`, `deleteConversation`, `addMessage`, `toggleSender`
+- **Verificação:** store importável; estado inicial com `activeConversationId: null`
+
+---
+
+### Fase 2 — Sidebar
+
+#### Tarefa 2.1 — Componentes do sidebar (desktop)
+- [ ] Criar `Sidebar.tsx` e `SidebarItem.tsx`
+- [ ] Listar conversas (ID como label), destacar ativa
+- [ ] Botão nova conversa conectado à store
+- [ ] Ícone excluir por item
+- **Verificação:** criar/selecionar/excluir conversas reflete na lista
+
+#### Tarefa 2.2 — Layout desktop
+- [ ] Refatorar `Chat.tsx`: sidebar fixo à esquerda + área de chat com `max-w-2xl` centralizado
+- **Verificação:** layout desktop conforme wireframe
+
+---
+
+### Fase 3 — Integração do chat
+
+#### Tarefa 3.1 — Migrar envio para a store
+- [ ] Remover `useState` de `Chat.tsx`
+- [ ] `MessageList` recebe mensagens da conversa ativa
+- [ ] `ChatInput` usa `sender` e `toggleSender` da store
+- **Verificação:** enviar mensagens em conversas distintas mantém históricos isolados
+
+#### Tarefa 3.2 — Empty states
+- [ ] Empty state global (sem conversa ativa)
+- [ ] Empty state por conversa (sem mensagens) — já existente, adaptar condição
+- **Verificação:** textos corretos em cada cenário
+
+#### Tarefa 3.3 — Input desabilitado
+- [ ] `ChatInput` aceita prop `disabled`
+- [ ] Aplicar opacidade 50% e bloquear interações quando `activeConversationId === null`
+- **Verificação:** input inativo ao abrir o app; ativo após criar/selecionar conversa
+
+---
+
+### Fase 4 — Mobile
+
+#### Tarefa 4.1 — Sidebar retrátil
+- [ ] Criar `MobileMenuButton.tsx` (hamburger)
+- [ ] Drawer overlay + backdrop no mobile
+- [ ] Fechar ao selecionar/criar conversa
+- **Verificação:** sidebar oculto por padrão no mobile; abre/fecha corretamente
+
+---
+
+### Fase 5 — Polimento
+
+#### Tarefa 5.1 — Ajustes visuais
+- [ ] Destaque do item ativo, espaçamento do sidebar, hover nos botões
+- [ ] Transições suaves no drawer mobile
+- **Verificação:** UI coesa com o restante do app
+
+#### Tarefa 5.2 — Revisão de qualidade
+- [ ] `npm run lint` e `npm run build` sem erros
+- [ ] Teste manual do fluxo completo (ver seção 12)
+- **Verificação:** build e lint limpos
+
+---
+
+## 11. Referência rápida de decisões
+
+| Decisão                  | Escolha                                                       |
+| ------------------------ | ------------------------------------------------------------- |
+| Persistência             | Apenas em memória                                             |
+| Estado inicial           | Nenhuma conversa ativa                                        |
+| Identificação no sidebar | Exibir o ID (UUID)                                            |
+| Ordem no sidebar         | Mais antiga no topo                                           |
+| Nova conversa            | UUID + seleção automática                                     |
+| Excluir conversa         | Ícone por item; sem confirmação                               |
+| Excluir conversa ativa   | Volta ao empty state global (`activeConversationId = null`)   |
+| Toggle remetente         | Global (compartilhado entre conversas)                        |
+| Layout desktop           | Sidebar fixo + chat `max-w-2xl` centralizado na área restante |
+| Sidebar mobile           | Retrátil via hamburger; overlay com backdrop                  |
+| Input sem conversa ativa | Opacidade 50%, controles desabilitados                        |
+| Gerenciamento de estado  | Zustand em `src/stores/`                                      |
+
+---
+
+## 12. Critérios de aceite (checklist final)
+
+- [ ] Store Zustand em `src/stores/` com conversas, conversa ativa e sender global
+- [ ] Ao abrir o app: nenhuma conversa ativa, empty state *"Crie ou selecione uma conversa"*
+- [ ] Sidebar à esquerda com lista de conversas (ID visível), ordem antiga → recente
+- [ ] Botão criar conversa: gera UUID, adiciona à lista, seleciona automaticamente
+- [ ] Clique em conversa na lista a ativa e exibe seu histórico
+- [ ] Ícone excluir remove conversa; excluir a ativa volta ao empty state global
+- [ ] Históricos isolados por conversa
+- [ ] Toggle usuário/robô global persiste ao trocar de conversa
+- [ ] Input desabilitado (50% opacidade) sem conversa ativa
+- [ ] Comportamento de envio, bolhas, auto-scroll e atalhos inalterados com conversa ativa
+- [ ] Mobile: hamburger abre/fecha sidebar; fecha ao selecionar ou criar conversa
+- [ ] Layout desktop: sidebar + área de chat centralizada `max-w-2xl`
+- [ ] Dados perdidos ao recarregar a página
+- [ ] `npm run build` e `npm run lint` sem erros
