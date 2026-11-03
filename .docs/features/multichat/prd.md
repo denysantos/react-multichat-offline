@@ -358,14 +358,14 @@ sequenceDiagram
 ### Fase 2 — Sidebar
 
 #### Tarefa 2.1 — Componentes do sidebar (desktop)
-- [ ] Criar `Sidebar.tsx` e `SidebarItem.tsx`
-- [ ] Listar conversas (ID como label), destacar ativa
-- [ ] Botão nova conversa conectado à store
-- [ ] Ícone excluir por item
+- [x] Criar `Sidebar.tsx` e `SidebarItem.tsx`
+- [x] Listar conversas (ID como label), destacar ativa
+- [x] Botão nova conversa conectado à store
+- [x] Ícone excluir por item
 - **Verificação:** criar/selecionar/excluir conversas reflete na lista
 
 #### Tarefa 2.2 — Layout desktop
-- [ ] Refatorar `Chat.tsx`: sidebar fixo à esquerda + área de chat com `max-w-2xl` centralizado
+- [x] Refatorar `Chat.tsx`: sidebar fixo à esquerda + área de chat com `max-w-2xl` centralizado
 - **Verificação:** layout desktop conforme wireframe
 
 ---
@@ -373,19 +373,19 @@ sequenceDiagram
 ### Fase 3 — Integração do chat
 
 #### Tarefa 3.1 — Migrar envio para a store
-- [ ] Remover `useState` de `Chat.tsx`
-- [ ] `MessageList` recebe mensagens da conversa ativa
-- [ ] `ChatInput` usa `sender` e `toggleSender` da store
+- [x] Remover `useState` de `Chat.tsx`
+- [x] `MessageList` recebe mensagens da conversa ativa
+- [x] `ChatInput` usa `sender` e `toggleSender` da store
 - **Verificação:** enviar mensagens em conversas distintas mantém históricos isolados
 
 #### Tarefa 3.2 — Empty states
-- [ ] Empty state global (sem conversa ativa)
-- [ ] Empty state por conversa (sem mensagens) — já existente, adaptar condição
+- [x] Empty state global (sem conversa ativa)
+- [x] Empty state por conversa (sem mensagens) — já existente, adaptar condição
 - **Verificação:** textos corretos em cada cenário
 
 #### Tarefa 3.3 — Input desabilitado
-- [ ] `ChatInput` aceita prop `disabled`
-- [ ] Aplicar opacidade 50% e bloquear interações quando `activeConversationId === null`
+- [x] `ChatInput` aceita prop `disabled`
+- [x] Aplicar opacidade 50% e bloquear interações quando `activeConversationId === null`
 - **Verificação:** input inativo ao abrir o app; ativo após criar/selecionar conversa
 
 ---

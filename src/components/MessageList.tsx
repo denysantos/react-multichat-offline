@@ -3,7 +3,7 @@ import type { Message } from '../types/message'
 import MessageBubble from './MessageBubble'
 
 type MessageListProps = {
-  messages: Message[]
+  messages: Message[] | null
 }
 
 export default function MessageList({ messages }: MessageListProps) {
@@ -12,6 +12,16 @@ export default function MessageList({ messages }: MessageListProps) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  if (messages === null) {
+    return (
+      <div className="flex flex-1 items-center justify-center overflow-y-auto p-4 pb-6">
+        <p className="text-center text-stone-600">
+          Crie ou selecione uma conversa
+        </p>
+      </div>
+    )
+  }
 
   if (messages.length === 0) {
     return (
