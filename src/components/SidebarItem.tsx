@@ -13,8 +13,10 @@ export default function SidebarItem({
 }: SidebarItemProps) {
   return (
     <div
-      className={`flex items-center gap-2 rounded-lg px-2 ${
-        isActive ? 'bg-stone-200 font-medium' : 'hover:bg-stone-200'
+      className={`flex items-center gap-2 rounded-lg border-l-4 px-2 transition-colors duration-150 ${
+        isActive
+          ? 'border-stone-700 bg-stone-200 font-medium'
+          : 'border-transparent hover:bg-stone-200'
       }`}
     >
       <button
@@ -22,7 +24,7 @@ export default function SidebarItem({
         onClick={onSelect}
         aria-current={isActive ? 'page' : undefined}
         title={id}
-        className="min-w-0 flex-1 truncate py-2 text-left text-sm text-stone-800"
+        className="min-w-0 flex-1 truncate py-2 text-left text-sm text-stone-800 focus-visible:outline-2 focus-visible:outline-stone-700"
       >
         {id}
       </button>
@@ -30,7 +32,7 @@ export default function SidebarItem({
         type="button"
         onClick={onDelete}
         aria-label={`Excluir conversa ${id}`}
-        className="shrink-0 rounded p-1.5 text-stone-500 transition-colors hover:bg-red-100 hover:text-red-700"
+        className="shrink-0 rounded p-1.5 text-stone-500 transition-colors hover:bg-red-100 hover:text-red-700 focus-visible:outline-2 focus-visible:outline-red-700"
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

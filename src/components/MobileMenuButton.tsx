@@ -14,7 +14,7 @@ export default function MobileMenuButton({
       aria-expanded={isOpen}
       aria-controls="conversation-sidebar"
       onClick={onClick}
-      className="fixed left-3 top-3 z-50 rounded-lg bg-stone-800 p-2 text-white transition-colors hover:bg-stone-700 md:hidden"
+      className="fixed left-3 top-3 z-50 rounded-lg bg-stone-800 p-2 text-white transition-colors hover:bg-stone-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-stone-700 md:hidden"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"

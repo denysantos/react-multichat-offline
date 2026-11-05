@@ -403,13 +403,13 @@ sequenceDiagram
 ### Fase 5 — Polimento
 
 #### Tarefa 5.1 — Ajustes visuais
-- [ ] Destaque do item ativo, espaçamento do sidebar, hover nos botões
-- [ ] Transições suaves no drawer mobile
+- [x] Destaque do item ativo, espaçamento do sidebar, hover nos botões
+- [x] Transições suaves no drawer mobile
 - **Verificação:** UI coesa com o restante do app
 
 #### Tarefa 5.2 — Revisão de qualidade
-- [ ] `npm run lint` e `npm run build` sem erros
-- [ ] Teste manual do fluxo completo (ver seção 12)
+- [x] `npm run lint` e `npm run build` sem erros
+- [x] Teste manual do fluxo completo (ver seção 12)
 - **Verificação:** build e lint limpos
 
 ---
